@@ -14,10 +14,14 @@ func main()  {
 
 	e := echo.New()
 	e.HideBanner = true
+	e.Use(middleware.Recover())
 	e.Pre(middleware.AddTrailingSlash())
 
 	helloGroup := e.Group("/hello")
 	controllers.RegisterHelloRoutes(helloGroup)
+
+	statementGroup := e.Group("/statement")
+	controllers.RegisterStatementRoutes(statementGroup)
 
 	e.Logger.Fatal(e.Start(":3000"))
 }

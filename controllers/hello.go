@@ -7,10 +7,10 @@ import (
 )
 
 func RegisterHelloRoutes(group *echo.Group) {
-	group.GET("/", get)
+	group.GET("/", getHello)
 }
 
-func get(c echo.Context) error {
+func getHello(c echo.Context) error {
 	return c.String(http.StatusOK, "Hello World!")
 }
 
