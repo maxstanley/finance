@@ -2,22 +2,23 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+
+	"go.maxstanley.uk/finance/controllers"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main()  {
 	fmt.Println("Starting!")
 
 	e := echo.New()
+	e.HideBanner = true
+	e.Pre(middleware.AddTrailingSlash())
 
-	e.GET("/", hello)
+	helloGroup := e.Group("/hello")
+	controllers.RegisterHelloRoutes(helloGroup)
 
 	e.Logger.Fatal(e.Start(":3000"))
-}
-
-func hello(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello World!")
 }
 
