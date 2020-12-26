@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"go.maxstanley.uk/finance/controllers"
+	"go.maxstanley.uk/finance/models"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -11,6 +13,11 @@ import (
 
 func main()  {
 	fmt.Println("Starting!")
+
+	err := models.InitialiseDatabase("./finance.db")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	e := echo.New()
 	e.HideBanner = true
@@ -22,6 +29,9 @@ func main()  {
 
 	statementGroup := e.Group("/statement")
 	controllers.RegisterStatementRoutes(statementGroup)
+
+	transactionGroup := e.Group("/transaction")
+	controllers.RegisterTransactionRoutes(transactionGroup)
 
 	e.Logger.Fatal(e.Start(":3000"))
 }

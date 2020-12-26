@@ -9,29 +9,22 @@ import (
 	"strings"
 	"time"
 
+	"go.maxstanley.uk/finance/models"
+
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/labstack/echo/v4"
 )
 
-type statement struct {
-	AccountNumber int
-	SortCode int
-	Transactions []*transaction
-}
-
-type transaction struct {
-	Date time.Time
-	Description string
-	Credit uint64
-	Debit uint64
-	Type string
-	Essential bool
-	PrimaryCategory string
-	SecondaryCategory string
-}
-
 func RegisterStatementRoutes(group *echo.Group) {
+	group.GET("/", getStatements)
 	group.POST("/", createStatement)
+}
+
+func getStatements(c echo.Context) error {
+	s := models.Statement{}
+	models.Database.Preload("Transactions").First(&s)
+
+	return c.JSON(http.StatusOK, s)
 }
 
 func createStatement(c echo.Context) error {
@@ -59,7 +52,7 @@ func createStatement(c echo.Context) error {
 
 	defer src.Close()
 
-	s := statement{
+	s := models.Statement{
 		AccountNumber: accountNumber,
 		SortCode: sortCode,
 	}
@@ -78,18 +71,16 @@ func createStatement(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Error")
 	}
 
-	// Return the parsed statement.
-	return c.JSON(http.StatusOK, s)
-
-	// FUTURE...
-
 	// Save the parsed statements to the local Database.
+	models.Database.Create(&s)
+	//models.Database.Save(&s)
 
-	// Return Successful.
+	// Return the parsed statement.
+	return c.String(http.StatusOK, "")
 }
 
-func parseLloydsStatement(s *statement, file io.Reader) error {
-	transactions := []*transaction{}
+func parseLloydsStatement(s *models.Statement, file io.Reader) error {
+	transactions := []models.Transaction{}
 	
 	r := csv.NewReader(file)
 
@@ -115,7 +106,7 @@ func parseLloydsStatement(s *statement, file io.Reader) error {
 			return err
 		}
 
-		t := transaction{}
+		t := models.Transaction{}
 
 		if t.Date, err = time.Parse("02/01/2006", row[0]); err != nil {
 			fmt.Println("Date Parsing Error ", row[0])
@@ -136,7 +127,7 @@ func parseLloydsStatement(s *statement, file io.Reader) error {
 
 		// row[6] Balance
 
-		transactions = append(transactions, &t)
+		transactions = append(transactions, t)
 	}
 
 	s.Transactions = transactions
@@ -144,10 +135,9 @@ func parseLloydsStatement(s *statement, file io.Reader) error {
 	return nil
 }
 
-func parseSantanderStatement(s *statement, file io.Reader) error {
-	transactions := []*transaction{}
+func parseSantanderStatement(s *models.Statement, file io.Reader) error {
+	transactions := []models.Transaction{}
 	
-	fmt.Println("Open XLS File")
 	xls, err := excelize.OpenReader(file)
 
 	if err != nil {
@@ -166,7 +156,7 @@ func parseSantanderStatement(s *statement, file io.Reader) error {
 			continue
 		}
 
-		t := transaction{}
+		t := models.Transaction{}
 
 		// row[0] Blank
 		if t.Date, err = time.Parse("02/01/2006", row[1]); err != nil {
@@ -187,7 +177,7 @@ func parseSantanderStatement(s *statement, file io.Reader) error {
 
 		// row[7] Balance
 
-		transactions = append(transactions, &t)
+		transactions = append(transactions, t)
 	}
 
 	s.Transactions = transactions
